@@ -1,0 +1,57 @@
+<RCC>
+    <qresource prefix="/">
+        <file>img/3floppy_unmount.png</file>
+        <file>img/acroread.png</file>
+        <file>img/advancedsettings.png</file>
+        <file>img/browser.png</file>
+        <file>img/button_cancel.png</file>
+        <file>img/button_ok.png</file>
+        <file>img/clean.png</file>
+        <file>img/database.png</file>
+        <file>img/date.png</file>
+        <file>img/db_add.png</file>
+        <file>img/db_comit.png</file>
+        <file>img/db_remove.png</file>
+        <file>img/db_status.png</file>
+        <file>img/db_update.png</file>
+        <file>img/decrypted.png</file>
+        <file>img/edit.png</file>
+        <file>img/edit_add.png</file>
+        <file>img/edit_remove.png</file>
+        <file>img/editcopy.png</file>
+        <file>img/editdelete.png</file>
+        <file>img/editpaste.png</file>
+        <file>img/encrypted.png</file>
+        <file>img/error.png</file>
+        <file>img/exec.png</file>
+        <file>img/exit.png</file>
+        <file>img/fileprint.png</file>
+        <file>img/find.png</file>
+        <file>img/gus.png</file>
+        <file>img/info.png</file>
+        <file>img/kghostview.png</file>
+        <file>img/lassists.png</file>
+        <file>img/linneighborhood.png</file>
+        <file>img/Login Manager.png</file>
+        <file>img/logout.png</file>
+        <file>img/msn.png</file>
+        <file>img/network.png</file>
+        <file>img/networksettings.png</file>
+        <file>img/nfs_unmount.png</file>
+        <file>img/printmgr.png</file>
+        <file>img/utilities.png</file>
+        <file>main.cpp</file>
+        <file>img/gus.jpg</file>
+        <file>img/a.jpg</file>
+        <file>img/2a.jpg</file>
+        <file>img/splash.png</file>
+        <file>img/satelit.gif</file>
+        <file>img/1200px-Great_emblem_of_the_Russian_Signal_corps.svg.png</file>
+        <file>log</file>
+        <file>resource/Images/guk.ico</file>
+        <file>resource/Images/guk.png</file>
+        <file>resource/Images/1612446167_135-p-cherno-serii-fon-na-rabochii-stol-170.jpg</file>
+        <file>resource/Images/checkbox-icon.png</file>
+        <file>resource/Images/combobox-icon.png</file>
+    </qresource>
+</RCC>
