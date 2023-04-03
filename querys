@@ -1,0 +1,14 @@
+//запрос на заполнение дерева статистики
+SELECT
+"Название",
+"Изображение",
+(SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS (SELECT d1.inputnumber FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 'Получение наград' AND '2023-01-28' <= d1.inputdate AND d1.inputdate <= '2023-03-28') AND kod = indoc.award_id AND indoc.outgoing_date IS NULL) AS "Наличие",
+(SELECT COUNT(outdoc.outgoing_doc_id) FROM awards AS outdoc WHERE EXISTS (SELECT d2.inputnumber FROM documents AS d2 WHERE outdoc.outgoing_doc_id = d2.inputnumber AND d2.type = 'Выдача наград' AND '2023-01-28' <= d2.inputdate AND d2.inputdate <= '2023-03-28') AND kod = outdoc.award_id AND outdoc.outgoing_date IS NULL) AS "Резерв",
+(SELECT COUNT(outdate.outgoing_doc_id) FROM awards AS outdate WHERE EXISTS (SELECT d3.inputnumber FROM documents AS d3 WHERE outdate.outgoing_doc_id = d3.inputnumber AND d3.type ='Выдача наград' AND '2023-01-28' <= d3.inputdate AND d3.inputdate <= '2023-03-28') AND kod = outdate.award_id AND outdate.outgoing_date IS NOT NULL) AS "Выдано",
+("Наличие" - "Резерв") AS "Остаток",
+
+(SELECT group_concat(storage) FROM (SELECT DISTINCT storage, award_id, incoming_doc_id, outgoing_date FROM awards) AS st
+    WHERE EXISTS (SELECT dst.inputnumber FROM documents AS dst WHERE st.incoming_doc_id = dst.inputnumber AND dst.type = 'Получение наград'
+    AND '2023-01-28' <= dst.inputdate AND dst.inputdate <= '2023-03-30') AND kod = st.award_id AND st.outgoing_date IS NULL) AS "Хранилище"
+
+FROM (SELECT dn.text AS "Название", dn.file AS "Изображение", dn.kod AS kod FROM distionary AS dn WHERE EXISTS (SELECT a.award_id FROM awards AS a WHERE dn.kod = a.award_id))
