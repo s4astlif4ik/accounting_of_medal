@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui sql
+QT       += core gui sql printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -36,12 +36,12 @@ SOURCES += \
 #    loggingcategories.cpp \
     dlg_authentication.cpp \
     mw.cpp \
-    form_statistic.cpp \
-    dlg_receiving.cpp \
     frm_receiwing.cpp \
     frm_sendering.cpp \
     frm_document_managering.cpp \
-    frm_filter.cpp
+    frm_filter.cpp \
+    dlg_report.cpp \
+    report.cpp
 #    exchange.cpp \
 #    old_text.cpp
 
@@ -57,12 +57,12 @@ HEADERS += \
 #    loggingcategories.h \
     dlg_authentication.h \
     mw.h \
-    form_statistic.h \
-    dlg_receiving.h \
     frm_receiwing.h \
     frm_sendering.h \
     frm_document_managering.h \
-    frm_filter.h
+    frm_filter.h \
+    dlg_report.h \
+    report.h
 
 FORMS += \
 #    mw_gl.ui \
@@ -74,18 +74,16 @@ FORMS += \
 #    dlg_report_availability.ui \
     dlg_authentication.ui \
     mw.ui \
-    form_statistic.ui \
-    dlg_receiving.ui \
     frm_receiwing.ui \
     frm_sendering.ui \
     frm_document_managering.ui \
-    frm_filter.ui
+    frm_filter.ui \
+    dlg_report.ui
 #    dlg_doc_old.ui \
 #    dlg_doc.ui
 
 RESOURCES += \
     resource.qrc
 
-DISTFILES += \
-    querys
+DISTFILES +=
 

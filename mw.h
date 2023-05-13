@@ -7,6 +7,8 @@
 #include <QStandardItemModel>
 #include <QSortFilterProxyModel>
 #include <QProgressBar>
+#include <QPushButton>
+
 
 namespace Ui {
 class MW;
@@ -26,18 +28,15 @@ public slots:
 
     void statusBar_remove_ProgressBar();
 
-
 private slots:
 
-    void show_dW_filter();
+    void show_dW_statistic(bool show_or_hide);
 
     void show_dW_doc_managering();
 
     void show_dW_receiving();
 
     void show_dW_extradition();
-
-    void show_receiving_form();
 
     void on_trw_statistic_expanded(const QModelIndex &index);
 
@@ -48,6 +47,14 @@ private slots:
     void slotCustomMenuRequested(QPoint pos);
 
     void resize_to_content();
+
+    void load_award_statistic(int award_id);
+
+    void on_dW_doc_managering_visibilityChanged(bool visible);
+
+    void on_dW_receiving_visibilityChanged(bool visible);
+
+    void on_dW_extradition_visibilityChanged(bool visible);
 
 public:
     explicit MW(QWidget *parent = 0);
@@ -61,10 +68,20 @@ public:
 
     QStandardItemModel *sim = new QStandardItemModel;
 
+    QSqlQueryModel *model_award_in_storage = new QSqlQueryModel;
+
+    QSqlQueryModel *model_issued_awards = new QSqlQueryModel;
+
     QSortFilterProxyModel *proxy;// = new QSortFilterProxyModel(this);
 
 private:
     Ui::MW *ui;
+
+    QAction *doc_managering;
+
+    QAction *receiving;
+
+    QAction *extradition;
 };
 
 #endif // MW_H

@@ -3,7 +3,6 @@
 #include "frm_document_managering.h"
 #include "frm_receiwing.h"
 #include "frm_sendering.h"
-#include "dlg_receiving.h"
 #include "frm_filter.h"
 
 #include <QMessageBox>
@@ -11,11 +10,13 @@
 #include <QList>
 #include <QDateEdit>
 #include <QLineEdit>
+#include <QPointer>
 
 
 MW *g_main_window; //ссылка на главную форму
 QSortFilterProxyModel *g_proxy; //ссылка на прокси модель статистики
 QTreeView *g_tree;
+extern FRM_filter *g_filter;
 extern QLineEdit *g_le_filter_text;
 extern QDateEdit *g_firstdate_filter;
 extern QDateEdit *g_lastdate_filter;
@@ -41,18 +42,19 @@ MW::MW(QWidget *parent) :
     //sb = ui->statusbar;
     filter_form =new FRM_filter;
     ui->toolBar->addWidget(filter_form);
+    ui->trw_statistic->header()->setStyleSheet("background-color: rgb(242, 242, 242);");
 //главная
     QMenu *main = new QMenu("Главная");
     if(ui->menubar->addMenu(main)) menu0 = main;
-    QAction *doc_managering = new QAction("Управление документами");
+    /*QAction **/doc_managering = new QAction("Управление документами");
     doc_managering->setCheckable(true);
     doc_managering->setChecked(false);
     main->addAction(doc_managering);
-    QAction *receiving = new QAction("Получение наград");
+    /*QAction **/receiving = new QAction("Получение наград");
     receiving->setCheckable(true);
     receiving->setChecked(false);
     main->addAction(receiving);
-    QAction *extradition = new QAction("Выдача наград");
+    /*QAction **/extradition = new QAction("Выдача наград");
     extradition->setCheckable(true);
     extradition->setChecked(false);
     main->addAction(extradition);
@@ -66,7 +68,7 @@ MW::MW(QWidget *parent) :
     QAction *about = new QAction("О программе");
     ui->menubar->addAction(about);
 //объявления сигналов
-    connect(filter, SIGNAL(triggered()), this, SLOT(show_dW_filter()));
+    //connect(filter, SIGNAL(triggered()), this, SLOT(show_dW_statistic()));
     connect(doc_managering, SIGNAL(triggered()), this, SLOT(show_dW_doc_managering()));
     connect(receiving, SIGNAL(triggered()), this, SLOT(show_dW_receiving()));
     connect(extradition, SIGNAL(triggered()), this, SLOT(show_dW_extradition()));
@@ -75,7 +77,7 @@ MW::MW(QWidget *parent) :
     connect(ui->trw_statistic, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(slotCustomMenuRequested(QPoint)));
 //скрытие докера получения наград
     ui->dW_doc_managering->hide();
-//создание ссылки на виджет получения наград
+//создание ссылки на виджет управления документами
     QWidget *doc_managering_form = new FRM_document_managering;
     ui->dW_doc_managering->setWidget(doc_managering_form);
 //скрытие докера получения наград
@@ -85,11 +87,11 @@ MW::MW(QWidget *parent) :
     ui->dW_receiving->setWidget(receiving_form);
 //скрытие докера получения наград
     ui->dW_extradition->hide();
-//создание ссылки на виджет получения наград
+//создание ссылки на виджет выдачи наград
     QWidget *extradition_form = new FRM_sendering;
     ui->dW_extradition->setWidget(extradition_form);
 //скрытие докера с фильтрами
-    ui->dW_filter->hide();
+    ui->dW_statistic->hide();
 //отображение заголовка
     ui->trw_statistic->header()->setVisible(true);
 //загрузка таблицы статистики
@@ -100,7 +102,7 @@ MW::MW(QWidget *parent) :
 bool MW::load_tree_view()
 {
     QProgressBar *pb = new QProgressBar();
-    sim->setColumnCount(6);//задаем таблице 5 столбцов
+    sim->setColumnCount(7);//задаем таблице 5 столбцов
     QIcon icon_sub_item = QIcon();
     QIcon standard_icon_item = this->windowIcon();
     QPixmap outpixmap;
@@ -128,7 +130,10 @@ bool MW::load_tree_view()
     {
         while (query_root_item.next())
         {
-            QString category = query_root_item.value(0).toString();
+            int category_id = query_root_item.value(0).toInt();
+            QString category;
+            if(category_id == 0) category = "Государственные награды";
+            if(category_id == 1) category = "Ведомственные награды";
             QStandardItem *root_item = new QStandardItem(category);
 //установка стиля элементов верхнего уровня
             root_item->setFont(QFont("Times New Roman", 11, 10, true));
@@ -136,11 +141,11 @@ bool MW::load_tree_view()
             root_item->setForeground(QBrush(QColor(255, 50, 50)));
 //вывод типов наград
             query_item.setForwardOnly(true);
-            if (query_item.exec(QString("SELECT DISTINCT a.type_id, d.text FROM awards AS a\
-                INNER JOIN (SELECT DISTINCT kod, text FROM distionary WHERE razdel = 25) as d ON (d.kod = a.type_id)\
-                INNER JOIN (SELECT inputnumber, inputdate FROM documents) AS d ON (a.incoming_doc_id = d.inputnumber)\
-                WHERE category = '%1';")
-                .arg(category)))
+            if(query_item.exec(QString("SELECT DISTINCT a.type_id, d.text FROM awards AS a\
+            INNER JOIN (SELECT DISTINCT kod, text FROM distionary WHERE razdel = 25) as d ON (d.kod = a.type_id)\
+            INNER JOIN (SELECT inputnumber, inputdate FROM documents) AS d ON (a.incoming_doc_id = d.inputnumber)\
+            WHERE category = %1;")
+            .arg(category_id)))
             {
                 while (query_item.next())
                 {
@@ -156,6 +161,7 @@ bool MW::load_tree_view()
                     auto item_3 = new QStandardItem("");
                     auto item_4 = new QStandardItem("");
                     auto item_5 = new QStandardItem("");
+                    auto item_6 = new QStandardItem("");
 //определения стиля элементов строки среднего уровня
                     item_1->setTextAlignment(Qt::AlignCenter);
                     item_2->setTextAlignment(Qt::AlignCenter);
@@ -167,35 +173,37 @@ bool MW::load_tree_view()
                     item_3->setFont(QFont("Times New Roman", 11, 10, true));
                     item_4->setFont(QFont("Times New Roman", 11, 10, true));
                     item_5->setFont(QFont("Times New Roman", 11, 10, true));
+                    item_6->setFont(QFont("Times New Roman", 11, 10, true));
                     //root_item->setBackground(QBrush(QColor(255,155,155)));
                     item_0->setForeground(QBrush(QColor(0, 85, 127)));
 //вывод наград определенного ведомства и типа
                     if (query_sub_item.exec(QString("SELECT \"Название\", \"Изображение\",\
-                                (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS (SELECT d1.inputnumber\
-                                FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 'Получение наград')\
-                                AND kod = indoc.award_id AND indoc.outgoing_date IS NULL) AS \"Наличие\",\
                     (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS (SELECT d1.inputnumber\
-                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 'Получение наград'\
+                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 0)\
+                    AND kod = indoc.award_id AND indoc.outgoing_date IS NULL) AS \"Наличие\",\
+                    (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS (SELECT d1.inputnumber\
+                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 0\
                     AND '%1' <= d1.inputdate AND d1.inputdate <= '%2')\
                     AND kod = indoc.award_id) AS \"Наличие\",\
-                        (SELECT COUNT(outdoc.outgoing_doc_id) FROM awards AS outdoc WHERE EXISTS (SELECT d2.inputnumber\
-                        FROM documents AS d2 WHERE outdoc.outgoing_doc_id = d2.inputnumber AND d2.type = 'Выдача наград'\
-                        AND '%1' <= d2.inputdate AND d2.inputdate <= '%2')\
-                        AND kod = outdoc.award_id AND outdoc.outgoing_date IS NULL) AS \"Резерв\",\
-                        (SELECT COUNT(outdate.outgoing_doc_id) FROM awards AS outdate WHERE EXISTS (SELECT d3.inputnumber\
-                        FROM documents AS d3 WHERE outdate.outgoing_doc_id = d3.inputnumber AND d3.type ='Выдача наград')\
-                        AND '%1' <= outdate.outgoing_date AND outdate.outgoing_date <= '%2'\
-                        AND kod = outdate.award_id AND outdate.outgoing_date IS NOT NULL) AS \"Выдано\",\
-                        (SELECT group_concat(storage) FROM\
-                        (SELECT DISTINCT storage, award_id, incoming_doc_id, outgoing_date FROM awards) AS st\
-                        WHERE EXISTS (SELECT dst.inputnumber FROM documents AS dst WHERE st.incoming_doc_id = dst.inputnumber\
-                        AND dst.type = 'Получение наград' )\
-                        AND kod = st.award_id AND st.outgoing_date IS NULL) AS \"Хранилище\"\
-                        FROM (SELECT dn.text AS \"Название\", dn.file AS \"Изображение\", dn.kod AS kod FROM distionary AS dn\
-                        WHERE EXISTS (SELECT a.award_id FROM awards AS a WHERE dn.kod = a.award_id\
-                        AND a.category = '%3' AND type_id = %4));")
-                        .arg(::g_firstdate_filter->date().toString(Qt::ISODate),::g_lastdate_filter->date().toString(Qt::ISODate),
-                             category, QString::number(type_id))))
+                    (SELECT COUNT(outdoc.outgoing_doc_id) FROM awards AS outdoc WHERE EXISTS (SELECT d2.inputnumber\
+                    FROM documents AS d2 WHERE outdoc.outgoing_doc_id = d2.inputnumber AND d2.type = 1\
+                    AND '%1' <= d2.inputdate AND d2.inputdate <= '%2')\
+                    AND kod = outdoc.award_id AND outdoc.outgoing_date IS NULL) AS \"Резерв\",\
+                    (SELECT COUNT(outdate.outgoing_doc_id) FROM awards AS outdate WHERE EXISTS (SELECT d3.inputnumber\
+                    FROM documents AS d3 WHERE outdate.outgoing_doc_id = d3.inputnumber AND d3.type = 1)\
+                    AND '%1' <= outdate.outgoing_date AND outdate.outgoing_date <= '%2'\
+                    AND kod = outdate.award_id AND outdate.outgoing_date IS NOT NULL) AS \"Выдано\",\
+                    (SELECT group_concat(storage, ', ') FROM\
+                    (SELECT DISTINCT storage, award_id, incoming_doc_id, outgoing_date FROM awards) AS st\
+                    WHERE EXISTS (SELECT dst.inputnumber FROM documents AS dst WHERE st.incoming_doc_id = dst.inputnumber\
+                    AND dst.type = 'Получение наград' )\
+                    AND kod = st.award_id AND st.outgoing_date IS NULL) AS \"Хранилище\",\
+                    kod\
+                    FROM (SELECT dn.text AS \"Название\", dn.file AS \"Изображение\", dn.kod AS kod FROM distionary AS dn\
+                    WHERE EXISTS (SELECT a.award_id FROM awards AS a WHERE dn.kod = a.award_id\
+                    AND a.category = %3 AND type_id = %4));")
+                    .arg(::g_firstdate_filter->date().toString(Qt::ISODate),::g_lastdate_filter->date().toString(Qt::ISODate),
+                    QString::number(category_id), QString::number(type_id))))
                     {
                         while (query_sub_item.next())
                         {
@@ -207,13 +215,16 @@ bool MW::load_tree_view()
                                 icon_sub_item.addPixmap(outpixmap);
                             }
 //присвоение значений строке элементов нижнего уровня
+//наименование и изображение награды
                             auto sub_item_0 = new QStandardItem(icon_sub_item, query_sub_item.value(0).toString());
+//получено
                             auto sub_item_1 = new QStandardItem(query_sub_item.value(3).toString() + " шт.");
 //добавить исключение при пустом значении!!!
                             auto sub_item_2 = new QStandardItem(query_sub_item.value(4).toString() + " шт.");
                             auto sub_item_3 = new QStandardItem(query_sub_item.value(5).toString() + " шт.");
                             auto sub_item_4 = new QStandardItem(query_sub_item.value(2).toString() + " шт.");
                             auto sub_item_5 = new QStandardItem(query_sub_item.value(6).toString());
+                            auto sub_item_6 = new QStandardItem(query_sub_item.value(7).toString());
 //определение стиля элементов строки нижнего уровня
                             sub_item_1->setTextAlignment(Qt::AlignCenter);
                             sub_item_2->setTextAlignment(Qt::AlignCenter);
@@ -233,6 +244,7 @@ bool MW::load_tree_view()
                             ls_sub_item.append(sub_item_3);
                             ls_sub_item.append(sub_item_4);
                             ls_sub_item.append(sub_item_5);
+                            ls_sub_item.append(sub_item_6);
 //добавление списка элементов строки нижнего уровня в элемент среднего уровня
                             pb->setValue(sub_k);
                         //QMessageBox::information(this, query_sub_item.value(0).toString(), QString::number(sub_k));
@@ -248,6 +260,7 @@ bool MW::load_tree_view()
                         ls_item.append(item_3);
                         ls_item.append(item_4);
                         ls_item.append(item_5);
+                        ls_item.append(item_6);
                     }
 //добавление списка элементов строки среднего уровня в элемент верхнего уровня
                     //root_item->appendRow(item);
@@ -283,6 +296,9 @@ bool MW::load_tree_view()
     auto header_5 = new QStandardItem("Расположение (в н.в.)");
     header_5->setTextAlignment(Qt::AlignCenter);
     sim->setHorizontalHeaderItem(5, header_5);
+    auto header_6 = new QStandardItem("Индекс награды");
+    header_6->setTextAlignment(Qt::AlignCenter);
+    sim->setHorizontalHeaderItem(6, header_6);
     pb->hide();
     ::g_main_window->statusBar_show_message("Таблица статистики обновлена...");
 //определение ширины столбцов таблицы
@@ -300,6 +316,9 @@ bool MW::load_tree_view()
     ui->trw_statistic->setColumnWidth(2, 100);
     ui->trw_statistic->setColumnWidth(3, 100);
     ui->trw_statistic->setColumnWidth(4, 150);
+    ui->trw_statistic->hideColumn(6);
+//каждый раз при загрузке формы статистики выключается кнопка обновления
+    ::g_filter->set_btn_update_tree_info(true);
     return true;
 }
 
@@ -315,8 +334,67 @@ void MW::on_trw_statistic_expanded(const QModelIndex &/*index*/)//раскрыт
 
 void MW::on_trw_statistic_clicked(const QModelIndex &index)//раскрытие ветки при одинарном клике
 {
+//раскрытие ветки
     ui->trw_statistic->expand(index);//раскрытие ветки
-    show_dW_filter();
+//вызов функции наполнения раздела статистики на основании выбранного индекса награды
+//    load_award_statistic(ui->trw_statistic->model()->index(index.parent().parent().row(), 0).
+//        child(index.parent().row(),0).child(index.row(),6).data().toInt());
+//вызываем функцию загрузки статистики с индексом выбранной награды
+    load_award_statistic(ui->trw_statistic->model()->index(index.row(), 6,
+        ui->trw_statistic->model()->index(index.parent().row(), 0,
+            ui->trw_statistic->model()->index(index.parent().parent().row(), 0))).data().toInt());
+}
+
+void MW::load_award_statistic(int award_id)
+{
+    QSqlQuery award_name;
+    if(award_id <= 0)
+    {
+        show_dW_statistic(false);
+    }
+    if(award_id > 0)
+    {
+        if(award_name.exec(QString("SELECT text FROM distionary WHERE kod = %1 LIMIT 1;").arg(award_id)))
+        {
+            while (award_name.next())
+            {
+                ui->lbl_award_name->setText(award_name.value(0).toString());
+            }
+//загрузка информации о медалях на складе
+            model_award_in_storage->setQuery(QString("SELECT storage AS \"Хранилище\",\
+            (SELECT COUNT(storage) FROM awards AS ac WHERE ac.award_id = a.award_id\
+            AND ac.storage = a.storage AND ac.outgoing_doc_id IS NULL) AS \"Количество\",\
+            (SELECT GROUP_CONCAT(number, ', ') FROM awards AS an\
+            WHERE an.award_id = a.award_id AND an.storage = a.storage\
+            AND an.outgoing_doc_id IS NULL\
+             AND an.number <>  '-' ORDER BY an.number) AS \"Номера\"\
+            FROM awards AS a WHERE a.award_id = %1 AND outgoing_doc_id IS NULL\
+            GROUP BY a.storage ORDER BY a.storage ").arg(award_id));
+            ui->tV_award_in_storage->setModel(model_award_in_storage);
+            ui->tV_award_in_storage->setWordWrap(true);
+            ui->tV_award_in_storage->setTextElideMode(Qt::ElideMiddle);
+            ui->tV_award_in_storage->resizeRowsToContents();
+
+//загрузка информации о медалях на выдаче
+            model_issued_awards->setQuery(QString("SELECT (SELECT shortname FROM organizations AS o\
+            WHERE EXISTS (SELECT inputnumber FROM documents AS d WHERE d.receiver_id = o.id\
+            AND d.inputnumber = a.outgoing_doc_id AND d.type = 1)) AS \"Организация\",\
+            (SELECT COUNT(award_id) FROM awards AS c WHERE c.award_id = a.award_id\
+            AND outgoing_doc_id IS NOT NULL) AS \"Количество\",\
+            (SELECT GROUP_CONCAT(number, ', ') FROM awards AS an\
+            WHERE an.award_id = a.award_id AND outgoing_doc_id IS NOT NULL\
+            AND number <> '-' ORDER BY number) AS \"Номера\" FROM\
+            (SELECT award_id, award_id, outgoing_doc_id FROM awards\
+            WHERE award_id = %1 AND outgoing_doc_id IS NOT NULL\
+            ORDER BY number LIMIT 1) AS a").arg(award_id));
+            ui->tV_issued_awards->setModel(model_issued_awards);
+            ui->tV_issued_awards->setWordWrap(true);
+            ui->tV_issued_awards->setTextElideMode(Qt::ElideMiddle);
+            ui->tV_issued_awards->resizeRowsToContents();
+//отображение формы статистики
+            show_dW_statistic(true);
+        }
+    }
 }
 
 void MW::show_dW_doc_managering()
@@ -358,19 +436,10 @@ void MW::show_dW_extradition()
     }
 }
 
-void MW::show_dW_filter()
+void MW::show_dW_statistic(bool show_or_hide)
 {
-    if (!ui->dW_filter->isHidden()) ui->dW_filter->hide();
-    else ui->dW_filter->show();
-}
-
-void MW::show_receiving_form()
-{
-//объявление диалогового окна получения наград
-    DLG_receiving receiving_form;
-    receiving_form.setModal(true);
-    receiving_form.showMaximized();
-    receiving_form.exec();
+    if (!show_or_hide) ui->dW_statistic->hide();
+    if (show_or_hide) ui->dW_statistic->show();
 }
 
 void MW::on_trw_statistic_doubleClicked(const QModelIndex &/*index*/)
@@ -420,5 +489,31 @@ void MW::slotCustomMenuRequested(QPoint pos)//создание контекст�
 
 void MW::resize_to_content()
 {
+
     ui->trw_statistic->resizeColumnToContents(0);
 }
+
+void MW::on_dW_doc_managering_visibilityChanged(bool visible)
+{
+    if(visible == false)
+    {
+        doc_managering->setChecked(false);
+    }
+}
+
+void MW::on_dW_receiving_visibilityChanged(bool visible)
+{
+    if(visible == false)
+    {
+      receiving->setChecked(false);
+    }
+}
+
+void MW::on_dW_extradition_visibilityChanged(bool visible)
+{
+    if(visible == false)
+    {
+    extradition->setChecked(false);
+    }
+}
+

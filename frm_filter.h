@@ -12,6 +12,9 @@ class FRM_filter : public QWidget
 {
     Q_OBJECT
 
+public slots:
+    void set_btn_update_tree_info(bool status);
+
 public:
     explicit FRM_filter(QWidget *parent = 0);
     ~FRM_filter();
@@ -22,6 +25,10 @@ private slots:
     void on_cB_period_filter_currentIndexChanged(int index);
 
     void on_btn_update_tree_clicked();
+
+    void on_dE_firstdate_filter_dateChanged(const QDate &date);
+
+    void on_dE_lastdate_filter_dateChanged(const QDate &date);
 
 private:
     Ui::FRM_filter *ui;

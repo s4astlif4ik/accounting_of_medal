@@ -16,18 +16,21 @@ class FRM_sendering : public QWidget
     Q_OBJECT
 
 public slots:
+
     void update_models();
+
+    QStringList get_outgoing_doc_details();
 
 public:
     explicit FRM_sendering(QWidget *parent = 0);
     ~FRM_sendering();
 
 private slots:
-    void on_cB_incoming_doc_currentIndexChanged(int index);
+    void on_cB_award_category_currentIndexChanged(int index);
 
     void on_cB_outgoing_doc_currentIndexChanged(int index);
 
-    void on_pushButton_clicked();
+    void on_btn_add_selected_awards_clicked();
 
     bool add_outgoing_award(QModelIndex index);
 
@@ -35,12 +38,14 @@ private slots:
 
     void on_bnt_outgoing_save_clicked();
 
+    void on_bnt_clean_clicked();
+
     void on_bnt_print_report_clicked();
 
 private:
     Ui::FRM_sendering *ui;
 
-    QSqlQueryModel *model_incoming_doc = new QSqlQueryModel();
+    QSqlQueryModel *model_award_type = new QSqlQueryModel();
 
     QSqlQueryModel *model_outgoing_doc = new QSqlQueryModel();
 

@@ -223,9 +223,9 @@ color: rgb(224, 228, 237);</string>
    <property name="geometry">
     <rect>
      <x>280</x>
-     <y>129</y>
-     <width>291</width>
-     <height>221</height>
+     <y>110</y>
+     <width>290</width>
+     <height>250</height>
     </rect>
    </property>
    <property name="font">
@@ -254,9 +254,9 @@ color: rgb(224, 228, 237);</string>
    <property name="geometry">
     <rect>
      <x>280</x>
-     <y>180</y>
-     <width>291</width>
-     <height>171</height>
+     <y>159</y>
+     <width>290</width>
+     <height>201</height>
     </rect>
    </property>
    <property name="styleSheet">
@@ -272,9 +272,9 @@ color: rgb(224, 228, 237);</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>145</y>
+      <y>165</y>
       <width>290</width>
-      <height>25</height>
+      <height>27</height>
      </rect>
     </property>
     <property name="font">
@@ -296,7 +296,7 @@ background-color: rgb(230, 200, 3);</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>20</y>
+      <y>55</y>
       <width>290</width>
       <height>25</height>
      </rect>
@@ -317,9 +317,9 @@ background-color: rgb(230, 200, 3);</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>105</y>
+      <y>130</y>
       <width>290</width>
-      <height>25</height>
+      <height>27</height>
      </rect>
     </property>
     <property name="font">
@@ -341,9 +341,9 @@ background-color: rgb(230, 200, 3);</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>0</y>
+      <y>40</y>
       <width>291</width>
-      <height>20</height>
+      <height>15</height>
      </rect>
     </property>
     <property name="font">
@@ -365,7 +365,7 @@ color: rgb(224, 228, 237);</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>65</y>
+      <y>95</y>
       <width>290</width>
       <height>25</height>
      </rect>
@@ -390,9 +390,9 @@ background-color: rgb(224, 228, 237);</string>
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>45</y>
+      <y>80</y>
       <width>291</width>
-      <height>18</height>
+      <height>15</height>
      </rect>
     </property>
     <property name="font">
@@ -410,6 +410,43 @@ color: rgb(224, 228, 237);</string>
      <string>пароль</string>
     </property>
    </widget>
+   <widget class="QComboBox" name="cB_type_connection">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>15</y>
+      <width>290</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgb(224, 228, 237);</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="lbl_login_2">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>291</width>
+      <height>15</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Times New Roman</family>
+      <pointsize>11</pointsize>
+      <italic>true</italic>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-color: rgba(255, 255, 255, 0);
+color: rgb(224, 228, 237);</string>
+    </property>
+    <property name="text">
+     <string>тип подключения</string>
+    </property>
+   </widget>
   </widget>
   <zorder>lbl_info</zorder>
   <zorder>fr1</zorder>
@@ -420,6 +457,7 @@ color: rgb(224, 228, 237);</string>
   <zorder>fr_login</zorder>
  </widget>
  <tabstops>
+  <tabstop>cB_type_connection</tabstop>
   <tabstop>le_login</tabstop>
   <tabstop>le_pass</tabstop>
   <tabstop>btn_login</tabstop>

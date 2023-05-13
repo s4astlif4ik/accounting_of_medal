@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QProgressBar>
 #include <QSortFilterProxyModel>
+#include <QTime>
 
 namespace Ui {
 class FRM_receiwing;
@@ -29,20 +30,22 @@ public:
 
     QCompleter *comp = new QCompleter();
 
+    QIcon button_ok;
+
+    QIcon combobox_icon;
+
+    QTime t;
+
 private slots:
     void on_le_award_name_returnPressed();
 
-    void f_ls_for_award_type();
+    //void f_ls_for_award_type();
 
     void f_ls_for_award_name();
 
     int on_bnt_save_award_clicked();
 
     void on_bnt_clear_award_clicked();
-
-    void on_le_award_type_editingFinished();
-
-    void on_le_award_name_editingFinished();
 
     void on_cB_doc_currentIndexChanged(int index);
 
@@ -52,9 +55,17 @@ private slots:
 
     void on_le_award_first_num_editingFinished();
 
-    void on_le_award_last_num_editingFinished();
+    bool add_awards(QString awards_number);
 
-    bool add_awards(QString awards_num);
+    void on_cB_award_type_currentIndexChanged(int index);
+
+    void clear_le_award_name();
+
+    int awards_count();
+
+    void on_le_award_last_num_textChanged(const QString &arg1);
+
+    int on_bnt_print_report_clicked();
 
 private:
     Ui::FRM_receiwing *ui;
@@ -67,7 +78,7 @@ private:
     QSqlQueryModel *model_incoming_doc = new QSqlQueryModel();
     QSqlQueryModel *model_type_award = new QSqlQueryModel();
     QSqlQueryModel *model_name_award = new QSqlQueryModel();
-
+    QSqlQueryModel *model_storage = new QSqlQueryModel();
 };
 
 #endif // FRM_RECEIWING_H
