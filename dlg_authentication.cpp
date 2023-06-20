@@ -15,8 +15,8 @@ dlg_authentication::dlg_authentication(QWidget *parent) :
 {
     ui->setupUi(this);
 //наполняем выпадающий список тип подключения
-    ui->cB_type_connection->addItem("Локальное подключение");
     ui->cB_type_connection->addItem("Сетевое подключение");
+    ui->cB_type_connection->addItem("Локальное подключение");
 //включаем рамку с данными для аутентификации
     ui->fr_login->setVisible(true);
 //скрываем прогресс бар
@@ -49,15 +49,15 @@ void dlg_authentication::on_btn_login_clicked()
 //            on_btn_close_clicked();
 //        }
 //    }
+
     if(ui->cB_type_connection->currentIndex() == 0)
-    {
-        type_connection = "local";
-    }
-    if(ui->cB_type_connection->currentIndex() == 1)
     {
         type_connection = "network";
     }
-
+    if(ui->cB_type_connection->currentIndex() == 1)
+    {
+        type_connection = "local";
+    }
     if(::connection_db(type_connection, ui->le_login->text(), ui->le_pass->text()) == 0) //если функция
     {
         load_sps();

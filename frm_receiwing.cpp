@@ -3,6 +3,7 @@
 #include "frm_document_managering.h"
 #include "frm_sendering.h"
 #include "mw.h"
+#include "frm_filter.h"
 #include "dlg_report.h"
 
 #include <QDebug>
@@ -11,6 +12,7 @@
 extern QSqlDatabase db;
 //ссылка на основную форму (статистика)
 extern MW *g_main_window;
+extern FRM_filter *g_filter;
 //глобальная ссылка на форму получения наград
 FRM_receiwing *g_receiving;
 //ссылка на форму выдачи документов
@@ -51,9 +53,6 @@ FRM_receiwing::FRM_receiwing(QWidget *parent) :
     ui->cB_award_category->setCurrentIndex(0);
 //установка валидатора на поле с количеством наград
     ui->le_award_count->setValidator(new QRegExpValidator(QRegExp("[1-9]\\d{0,2}"), this));
-//установка комплитера для поля место хранения
-//    model_storage->setQuery("SELECT DISTINCT storage FROM awards ORDER BY storage;");
-//    ui->le_award_storage->setCompleter(createCompleter(model_storage));
 //блокировка выпадающего списка тип награды
     //ui->cB_award_type->setEnabled(false);
 //блокировка текстового поля наименование награды
@@ -144,7 +143,7 @@ int FRM_receiwing::on_bnt_save_award_clicked()
     if (reply == QMessageBox::Yes)
     {
 //цикл добавления определенного количества медалей
-        db.transaction();
+        //db.transaction();
 //определение количества наград
         int kk = ui->le_award_count->text().toInt();
 //вызов статус бара для индикации добавления наград
@@ -169,7 +168,7 @@ int FRM_receiwing::on_bnt_save_award_clicked()
 //вызов функции добавления наград
             if(!add_awards(award_number))
             {
-                db.rollback();
+                //db.rollback();
                 QMessageBox::warning(this, "Внимание", "Произошла ошибка добавление медалей, процесс добавления будет остановлен!!!");
                 return 1;
             }
@@ -185,7 +184,9 @@ int FRM_receiwing::on_bnt_save_award_clicked()
 //выравнивание столбцов таблицы под содержимое
     ui->tV_awards->resizeColumnsToContents();
 //обновление дерева статистики
-    ::g_main_window->load_tree_view();
+
+    ::g_filter->set_btn_update_tree_info(false);
+//    ::g_main_window->load_tree_view();
     ::g_sendering->update_models();
 //очистка полей с номерами наград
     ui->le_award_first_num->clear();
@@ -199,7 +200,7 @@ bool FRM_receiwing::add_awards(QString awards_number)
     QSqlQuery add_award;
 //проверка выполнения запроса на добавление записей
     if(!add_award.exec(QString("INSERT INTO awards (category, type_id, award_id, number, storage, note, incoming_doc_id)\
-        VALUES  (%1, %2, %3, '%4', '%5', '%6', %7);")
+        VALUES  (%1, %2, %3, '%4', '%5', '%6', '%7');")
             .arg(ui->cB_award_category->currentIndex())
             .arg(ui->cB_award_type->model()->index(ui->cB_award_type->currentIndex(), 1).data().toString())
             .arg(::l_name_award_id)
@@ -221,6 +222,7 @@ void FRM_receiwing::clear_le_award_name()
 {
     ui->le_award_name->setReadOnly(false);
     ui->le_award_name->clear();
+    ui->le_award_storage->clear();
     //act_award_name->setIcon(combobox_icon);
     ::l_name_award_id = 0;
 }
@@ -243,19 +245,34 @@ void FRM_receiwing::on_cB_doc_currentIndexChanged(int index)
 {
 //очистка формы при выборе другого документа
     //FRM_receiwing::on_bnt_clear_award_clicked();
+//    model_awards->setQuery(QString("SELECT DISTINCT '%1' AS \"Категория\", d_t.text AS \"Тип\",\
+//                                   d_a.text AS \"Название\", a.number AS \"№ награды\", (SELECT COUNT(count.award_id) FROM awards AS count\
+//                                   WHERE count.award_id = a.award_id AND count.number = a.number AND count.category = a.category\
+//                                   AND count.incoming_doc_id = a.incoming_doc_id) AS \"Кол-во\",\
+//                                   (SELECT DISTINCT GROUP_CONCAT(aw.storage, ', ') FROM awards AS aw\
+//                                   WHERE aw.award_id = a.award_id AND aw.number = a.number AND aw.category = a.category\
+//                                   AND aw.incoming_doc_id = a.incoming_doc_id) AS \"Расположение\"\
+//                                   FROM awards AS a\
+//                                   INNER JOIN (SELECT DISTINCT razdel, kod, text FROM SLOVAR WHERE razdel = 25) AS d_t ON\
+//                                   (a.type_id = d_t.kod)\
+//                                   INNER JOIN (SELECT DISTINCT razdel, kod, text FROM SLOVAR WHERE razdel = 1) AS d_a ON\
+//                                   (a.award_id = d_a.kod)\
+//                                   WHERE category = %2 AND incoming_doc_id = %3 ORDER BY \"Категория\", \"Тип\", \"Название\";")
+
     model_awards->setQuery(QString("SELECT DISTINCT '%1' AS \"Категория\", d_t.text AS \"Тип\",\
                                    d_a.text AS \"Название\", a.number AS \"№ награды\", (SELECT COUNT(count.award_id) FROM awards AS count\
                                    WHERE count.award_id = a.award_id AND count.number = a.number AND count.category = a.category\
                                    AND count.incoming_doc_id = a.incoming_doc_id) AS \"Кол-во\",\
-                                   (SELECT DISTINCT GROUP_CONCAT(aw.storage, ', ') FROM awards AS aw\
+                                   STUFF(\
+                                   (SELECT DISTINCT ', ' + aw.storage FROM awards AS aw\
                                    WHERE aw.award_id = a.award_id AND aw.number = a.number AND aw.category = a.category\
-                                   AND aw.incoming_doc_id = a.incoming_doc_id) AS \"Расположение\"\
+                                   AND aw.incoming_doc_id = a.incoming_doc_id FOR XML PATH('')), 1, 1, '') AS \"Расположение\"\
                                    FROM awards AS a\
-                                   INNER JOIN (SELECT DISTINCT razdel, kod, text FROM distionary WHERE razdel = 25) AS d_t ON\
+                                   INNER JOIN (SELECT DISTINCT razdel, kod, text FROM SLOVAR WHERE razdel = 25) AS d_t ON\
                                    (a.type_id = d_t.kod)\
-                                   INNER JOIN (SELECT DISTINCT razdel, kod, text FROM distionary WHERE razdel = 1) AS d_a ON\
+                                   INNER JOIN (SELECT DISTINCT razdel, kod, text FROM SLOVAR WHERE razdel = 1) AS d_a ON\
                                    (a.award_id = d_a.kod)\
-                                   WHERE category = %2 AND incoming_doc_id = %3 ORDER BY \"Категория\", \"Тип\", \"Название\";")
+                                   WHERE category = %2 AND incoming_doc_id = '%3' ORDER BY \"Категория\", \"Тип\", \"Название\";")
     .arg(ui->cB_award_category->currentText())
     .arg(QString::number(ui->cB_award_category->currentIndex()))
     .arg(ui->cB_doc->model()->index(index, 0).data().toString()));
@@ -263,7 +280,7 @@ void FRM_receiwing::on_cB_doc_currentIndexChanged(int index)
     ui->tV_awards->resizeColumnsToContents();
 //наполнение модели данных выпадающего списка типов наград
 //    ui->cB_award_type->setEnabled(true);
-    model_type_award->setQuery("SELECT DISTINCT text, kod FROM distionary WHERE razdel = 25 ORDER BY text;");
+    model_type_award->setQuery("SELECT DISTINCT text, kod FROM SLOVAR WHERE razdel = 25 ORDER BY text;");
     ui->cB_award_type->setModel(model_type_award);
     ui->cB_award_type->setModelColumn(0);
     ui->cB_award_type->setCurrentIndex(-1);
@@ -318,8 +335,10 @@ void FRM_receiwing::on_cB_award_category_currentIndexChanged(int index)
 {
 
 //при выборе категории получаемых наград загружаем модель документов в выпадающий список
-    model_incoming_doc->setQuery(QString("SELECT DISTINCT inputnumber, '№ ' || inputnumber || ' от ' || inputdate\
-        FROM documents WHERE type = 0 AND awards_category = %1 ORDER BY inputnumber;").arg(index));
+//    model_incoming_doc->setQuery(QString("SELECT DISTINCT inputnumber, '№ ' || inputnumber || ' от ' || inputdate\
+//        FROM documents WHERE type = 0 AND awards_category = %1 ORDER BY inputnumber;").arg(index));
+    model_incoming_doc->setQuery(QString("SELECT DISTINCT ID, '№ ' + CONVERT(nvarchar(10),  inputnumber) + ' от ' + CONVERT(nvarchar(10), inputdate),\
+        inputnumber FROM documents WHERE type = 0 AND awards_category = %1 ORDER BY inputnumber;").arg(index));
     ui->cB_doc->setModel(model_incoming_doc);
     ui->cB_doc->setModelColumn(1);
     //ui->cB_doc->blockSignals(false);
@@ -328,14 +347,14 @@ void FRM_receiwing::on_cB_award_category_currentIndexChanged(int index)
     if(index == 0)
     {
         ui->rb_numbers->setChecked(true);
-        model_name_award->setQuery(QString("SELECT DISTINCT text, kod FROM distionary WHERE razdel = 1 AND kod < 8000 ORDER BY text"));
+        model_name_award->setQuery(QString("SELECT DISTINCT text, kod FROM SLOVAR WHERE razdel = 1 AND kod < 8000 ORDER BY text;"));
         //ui->cB_award_type->setEnabled(true);
     }
 //выбран раздел ведомственные награды
     if(index == 1)
     {
         ui->rb_count->setChecked(true);
-        model_name_award->setQuery(QString("SELECT DISTINCT text, kod FROM distionary WHERE razdel = 1 AND kod > 8000 ORDER BY text"));
+        model_name_award->setQuery(QString("SELECT DISTINCT text, kod FROM SLOVAR WHERE razdel = 1 AND kod > 8000 ORDER BY text"));
         //ui->cB_award_type->setEnabled(true);
     }
 }
@@ -345,12 +364,13 @@ void FRM_receiwing::on_le_award_first_num_editingFinished()
 //установка условия по оформлению конечного номера награды
     QString validator_content;
 
-    for(int k = 0; k < ui->le_award_first_num->text().length() - 3; k++)
+    for(int k = 0; k < ui->le_award_first_num->text().length() - 4; k++)
     {
         validator_content.append(QString("[%1]").arg(ui->le_award_first_num->text().at(k)));
     }
     //validator_content.append("\\d{3}");
-    validator_content.append("[0-9][0-9][0-9]");
+    //validator_content.append("[0-9][0-9][0-9]");
+    validator_content.append("[0-9][0-9][0-9][0-9]");
     ui->le_award_last_num->setValidator(new QRegExpValidator(QRegExp(validator_content)));
 //здесь будет функция по подсчету наград
         ui->le_award_count->setText(QString::number(awards_count()));

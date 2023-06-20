@@ -12,6 +12,8 @@
 #include <QLineEdit>
 #include <QPointer>
 
+#include <QDir>
+
 
 MW *g_main_window; //ссылка на главную форму
 QSortFilterProxyModel *g_proxy; //ссылка на прокси модель статистики
@@ -106,7 +108,7 @@ bool MW::load_tree_view()
     QIcon icon_sub_item = QIcon();
     QIcon standard_icon_item = this->windowIcon();
     QPixmap outpixmap;
-    QSqlQuery query_pb_max;//запрос на вывод ведомств
+    QSqlQuery query_pb_max;//определение максимального количества медалей
     QSqlQuery query_root_item;//запрос на вывод ведомств
     QSqlQuery query_item;//запрос на вывод типов наград
     QSqlQuery query_sub_item;//запрос на вывод медалей по типам наград
@@ -117,7 +119,7 @@ bool MW::load_tree_view()
     int sub_k = 0;
     //icon_sub_item = this->windowIcon();//QIcon.addFile("./resource/Images/guk.ico");//добавление иконки на медаль
 //запрос на вывод количества наименований медалей для прогресс бара
-    if (query_pb_max.exec("SELECT COUNT (DISTINCT award_id) FROM awards LIMIT 1;"))
+    if (query_pb_max.exec("SELECT TOP 1 COUNT (DISTINCT award_id) FROM awards;"))
     {
         while (query_pb_max.next())
         {
@@ -140,11 +142,10 @@ bool MW::load_tree_view()
             //root_item->setBackground(QBrush(QColor(255,155,155)));
             root_item->setForeground(QBrush(QColor(255, 50, 50)));
 //вывод типов наград
-            query_item.setForwardOnly(true);
-            if(query_item.exec(QString("SELECT DISTINCT a.type_id, d.text FROM awards AS a\
-            INNER JOIN (SELECT DISTINCT kod, text FROM distionary WHERE razdel = 25) as d ON (d.kod = a.type_id)\
-            INNER JOIN (SELECT inputnumber, inputdate FROM documents) AS d ON (a.incoming_doc_id = d.inputnumber)\
-            WHERE category = %1;")
+            //query_item.setForwardOnly(true);
+            if(query_item.exec(QString("SELECT DISTINCT a.type_id, dist.text FROM awards AS a\
+                                       INNER JOIN (SELECT DISTINCT kod, text FROM SLOVAR WHERE razdel = 25) as dist ON (dist.kod = a.type_id)\
+                                       WHERE category = %1;")
             .arg(category_id)))
             {
                 while (query_item.next())
@@ -178,42 +179,55 @@ bool MW::load_tree_view()
                     item_0->setForeground(QBrush(QColor(0, 85, 127)));
 //вывод наград определенного ведомства и типа
                     if (query_sub_item.exec(QString("SELECT \"Название\", \"Изображение\",\
-                    (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS (SELECT d1.inputnumber\
-                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 0)\
-                    AND kod = indoc.award_id AND indoc.outgoing_date IS NULL) AS \"Наличие\",\
-                    (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS (SELECT d1.inputnumber\
-                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.inputnumber AND d1.type = 0\
-                    AND '%1' <= d1.inputdate AND d1.inputdate <= '%2')\
-                    AND kod = indoc.award_id) AS \"Наличие\",\
-                    (SELECT COUNT(outdoc.outgoing_doc_id) FROM awards AS outdoc WHERE EXISTS (SELECT d2.inputnumber\
-                    FROM documents AS d2 WHERE outdoc.outgoing_doc_id = d2.inputnumber AND d2.type = 1\
-                    AND '%1' <= d2.inputdate AND d2.inputdate <= '%2')\
-                    AND kod = outdoc.award_id AND outdoc.outgoing_date IS NULL) AS \"Резерв\",\
-                    (SELECT COUNT(outdate.outgoing_doc_id) FROM awards AS outdate WHERE EXISTS (SELECT d3.inputnumber\
-                    FROM documents AS d3 WHERE outdate.outgoing_doc_id = d3.inputnumber AND d3.type = 1)\
-                    AND '%1' <= outdate.outgoing_date AND outdate.outgoing_date <= '%2'\
-                    AND kod = outdate.award_id AND outdate.outgoing_date IS NOT NULL) AS \"Выдано\",\
-                    (SELECT group_concat(storage, ', ') FROM\
-                    (SELECT DISTINCT storage, award_id, incoming_doc_id, outgoing_date FROM awards) AS st\
-                    WHERE EXISTS (SELECT dst.inputnumber FROM documents AS dst WHERE st.incoming_doc_id = dst.inputnumber\
-                    AND dst.type = 'Получение наград' )\
-                    AND kod = st.award_id AND st.outgoing_date IS NULL) AS \"Хранилище\",\
-                    kod\
-                    FROM (SELECT dn.text AS \"Название\", dn.file AS \"Изображение\", dn.kod AS kod FROM distionary AS dn\
-                    WHERE EXISTS (SELECT a.award_id FROM awards AS a WHERE dn.kod = a.award_id\
-                    AND a.category = %3 AND type_id = %4));")
-                    .arg(::g_firstdate_filter->date().toString(Qt::ISODate),::g_lastdate_filter->date().toString(Qt::ISODate),
-                    QString::number(category_id), QString::number(type_id))))
+                                                    (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc WHERE EXISTS\
+                                                    (SELECT d1.inputnumber\
+                                                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.ID AND d1.type = 0)\
+                                                    AND kod = indoc.award_id AND indoc.outgoing_date IS NULL) AS \"Наличие\",\
+                                                    (SELECT COUNT(indoc.incoming_doc_id) FROM awards AS indoc\
+                                                    WHERE EXISTS (SELECT d1.inputnumber\
+                                                    FROM documents AS d1 WHERE indoc.incoming_doc_id = d1.ID AND d1.type = 0\
+                                                    AND '%1' <= d1.inputdate AND d1.inputdate <= '%2')\
+                                                    AND kod = indoc.award_id) AS \"Наличие\",\
+                                                    (SELECT COUNT(outdoc.outgoing_doc_id) FROM awards AS outdoc\
+                                                    WHERE EXISTS (SELECT d2.inputnumber\
+                                                    FROM documents AS d2 WHERE outdoc.outgoing_doc_id = d2.ID AND d2.type = 1\
+                                                    AND '%1' <= d2.inputdate AND d2.inputdate <= '%2')\
+                                                    AND kod = outdoc.award_id AND outdoc.outgoing_date IS NULL) AS \"Резерв\",\
+                                                    (SELECT COUNT(outdate.outgoing_doc_id) FROM awards AS outdate\
+                                                    WHERE EXISTS (SELECT d3.inputnumber\
+                                                    FROM documents AS d3 WHERE outdate.outgoing_doc_id = d3.ID AND d3.type = 1)\
+                                                    AND '%1' <= outdate.outgoing_date AND outdate.outgoing_date <= '%2'\
+                                                    AND kod = outdate.award_id AND outdate.outgoing_date IS NOT NULL) AS \"Выдано\",\
+                                                    STUFF(\
+                                                    (SELECT ', ' + storage FROM\
+                                                    (SELECT DISTINCT storage, award_id, incoming_doc_id, outgoing_date FROM awards) AS st\
+                                                    WHERE EXISTS (SELECT dst.ID FROM documents AS dst WHERE st.incoming_doc_id = dst.ID\
+                                                    AND dst.type = 0 )\
+                                                    AND kod = st.award_id AND st.outgoing_date IS NULL\
+                                                    FOR XML PATH('')), 1, 1, '') AS \"Хранилище\",\
+                                                    kod\
+                                                    FROM (SELECT dn.text AS \"Название\", NULL AS \"Изображение\", dn.kod AS kod\
+                                                    FROM SLOVAR AS dn\
+                                                    WHERE EXISTS (SELECT a.award_id FROM awards AS a WHERE dn.kod = a.award_id\
+                                                    AND a.category = %3 AND type_id = %4) AND razdel = 1) AS SQL ORDER BY kod;")
+                    .arg(::g_firstdate_filter->date().toString(Qt::ISODate)).arg(::g_lastdate_filter->date().toString(Qt::ISODate))
+                    .arg(QString::number(category_id)).arg(QString::number(type_id))))
                     {
                         while (query_sub_item.next())
                         {
 //создание списка элементов строки нижнего уровня
                             QList<QStandardItem*> ls_sub_item;
                             icon_sub_item = standard_icon_item;
-                            if (outpixmap.loadFromData(query_sub_item.value(1).toByteArray()))
+                            QString image_path = QString("%1/nagr/%2.png").arg(QDir::currentPath()).arg(query_sub_item.value(7).toString());
+                            if(QFile::exists(image_path))
                             {
-                                icon_sub_item.addPixmap(outpixmap);
+                                icon_sub_item.addPixmap(QPixmap(image_path));
                             }
+//                            if (outpixmap.loadFromData(query_sub_item.value(1).toByteArray()))
+//                            {
+//                                icon_sub_item.addPixmap(outpixmap);
+//                            }
+
 //присвоение значений строке элементов нижнего уровня
 //наименование и изображение награды
                             auto sub_item_0 = new QStandardItem(icon_sub_item, query_sub_item.value(0).toString());
@@ -267,9 +281,11 @@ bool MW::load_tree_view()
                     root_item->appendRow(ls_item);
 //очистка списка для заполнения элементами новой строки
                     ls_item.clear();
+
                 }
 //размещение строки в модели данных
                 sim->setItem(root_k, 0, root_item);
+//утсановка высоты строк в таблице
                 sim->setData(sim->index(root_k, 0), QSize(250, 65), Qt::SizeHintRole);
 //увеличение коэффициента строки в модели данных
                 root_k++;
@@ -354,39 +370,39 @@ void MW::load_award_statistic(int award_id)
     }
     if(award_id > 0)
     {
-        if(award_name.exec(QString("SELECT text FROM distionary WHERE kod = %1 LIMIT 1;").arg(award_id)))
+        if(award_name.exec(QString("SELECT TOP 1 text FROM SLOVAR WHERE kod = %1;").arg(award_id)))
         {
             while (award_name.next())
             {
                 ui->lbl_award_name->setText(award_name.value(0).toString());
             }
 //загрузка информации о медалях на складе
-            model_award_in_storage->setQuery(QString("SELECT storage AS \"Хранилище\",\
+            model_award_in_storage->setQuery(QString("SELECT DISTINCT a.storage AS \"Хранилище\",\
             (SELECT COUNT(storage) FROM awards AS ac WHERE ac.award_id = a.award_id\
             AND ac.storage = a.storage AND ac.outgoing_doc_id IS NULL) AS \"Количество\",\
-            (SELECT GROUP_CONCAT(number, ', ') FROM awards AS an\
+            STUFF ((SELECT ', ' + number FROM awards AS an\
             WHERE an.award_id = a.award_id AND an.storage = a.storage\
             AND an.outgoing_doc_id IS NULL\
-             AND an.number <>  '-' ORDER BY an.number) AS \"Номера\"\
+            AND an.number <>  '-' ORDER BY an.number FOR XML PATH('')), 1, 1, '') AS \"Номера\"\
             FROM awards AS a WHERE a.award_id = %1 AND outgoing_doc_id IS NULL\
-            GROUP BY a.storage ORDER BY a.storage ").arg(award_id));
+            ORDER BY a.storage ").arg(award_id));
             ui->tV_award_in_storage->setModel(model_award_in_storage);
             ui->tV_award_in_storage->setWordWrap(true);
             ui->tV_award_in_storage->setTextElideMode(Qt::ElideMiddle);
             ui->tV_award_in_storage->resizeRowsToContents();
 
 //загрузка информации о медалях на выдаче
-            model_issued_awards->setQuery(QString("SELECT (SELECT shortname FROM organizations AS o\
-            WHERE EXISTS (SELECT inputnumber FROM documents AS d WHERE d.receiver_id = o.id\
-            AND d.inputnumber = a.outgoing_doc_id AND d.type = 1)) AS \"Организация\",\
+            model_issued_awards->setQuery(QString("SELECT (SELECT text FROM slovar AS o\
+            WHERE EXISTS (SELECT inputnumber FROM documents AS d WHERE d.receiver_id = o.kod\
+            AND d.ID = a.outgoing_doc_id AND d.type = 1) AND razdel = 3) AS \"Организация\",\
             (SELECT COUNT(award_id) FROM awards AS c WHERE c.award_id = a.award_id\
             AND outgoing_doc_id IS NOT NULL) AS \"Количество\",\
-            (SELECT GROUP_CONCAT(number, ', ') FROM awards AS an\
+            STUFF((SELECT ', ' + number FROM awards AS an\
             WHERE an.award_id = a.award_id AND outgoing_doc_id IS NOT NULL\
-            AND number <> '-' ORDER BY number) AS \"Номера\" FROM\
-            (SELECT award_id, award_id, outgoing_doc_id FROM awards\
-            WHERE award_id = %1 AND outgoing_doc_id IS NOT NULL\
-            ORDER BY number LIMIT 1) AS a").arg(award_id));
+            AND number <> '-' ORDER BY number FOR XML PATH('')), 1, 1, '') AS \"Номера\"\
+            FROM\
+            (SELECT TOP 1 award_id, outgoing_doc_id FROM awards\
+            WHERE award_id = %1 AND outgoing_doc_id IS NOT NULL) AS a").arg(award_id));
             ui->tV_issued_awards->setModel(model_issued_awards);
             ui->tV_issued_awards->setWordWrap(true);
             ui->tV_issued_awards->setTextElideMode(Qt::ElideMiddle);

@@ -78,7 +78,7 @@ QString REPORT::insert_table(QString row_content)
 {
 //добавление таблицы в шаблон
     return QString("\
-        <table width=100% border=1 cellpadding=1 cellspacing=0>\
+        <table width=100% border=1 cellpadding=1 cellspacing=0 style = {border-collapse: separate; border-spacing: 0em;}>\
            <col width=17*>\
            <col width=64*>\
            <col width=41*>\
@@ -178,41 +178,68 @@ QString REPORT::insert_row_for_table(QStringList content_list)
 QString REPORT::load_outgoing_doc_report(QStringList document_details)
 {
 //загрузка модели данных таблицы
-    model_report_receiver->setQuery(QString("SELECT\
-        'ГОСУДАРСТВЕННЫЕ НАГРАДЫ РОССИЙСКОЙ ФЕДЕРАЦИИ' AS \"Категория\",\
-        (SELECT direction FROM documents AS doc WHERE\
-        doc.inputnumber = a.incoming_doc_id AND awards_category = 0 AND doc.type = 0) AS \"Основание\",\
-        (SELECT text FROM distionary AS d WHERE d.kod = a.award_id) AS \"Название\",\
-        (SELECT  COUNT(award_id) FROM awards AS ca WHERE ca.award_id = a.award_id\
-        AND ca.incoming_doc_id = a.incoming_doc_id AND ca.outgoing_doc_id = a.outgoing_doc_id) AS \"Количество\",\
-        (SELECT GROUP_CONCAT(number, ', ') FROM awards AS na WHERE na.award_id = a.award_id\
-        AND na.incoming_doc_id = a.incoming_doc_id AND na.outgoing_doc_id = a.outgoing_doc_id\
-        AND na.number <>  '-' ORDER BY number) AS \"Номера\"\
-        FROM (SELECT incoming_doc_id, outgoing_doc_id, award_id FROM awards WHERE category = 0 AND outgoing_doc_id = %1\
-        ORDER BY incoming_doc_id) AS a GROUP BY \"Основание\", \"Название\"\
-        UNION ALL\
-        SELECT\
-        'ВЕДОМСТВЕННЫЕ НАГРАДЫ РОССИЙСКОЙ ФЕДЕРАЦИИ' AS \"Категория\",\
-        (SELECT direction FROM documents AS doc WHERE\
-        doc.inputnumber = a.incoming_doc_id AND awards_category = 1 AND doc.type = 0) AS \"Основание\",\
-        (SELECT text FROM distionary AS d WHERE d.kod = a.award_id) AS \"Название\",\
-        (SELECT  COUNT(award_id) FROM awards AS ca WHERE ca.award_id = a.award_id\
-        AND ca.incoming_doc_id = a.incoming_doc_id AND ca.outgoing_doc_id = a.outgoing_doc_id) AS \"Количество\",\
-        (SELECT GROUP_CONCAT(number, ', ') FROM awards AS na WHERE na.award_id = a.award_id\
-        AND na.incoming_doc_id = a.incoming_doc_id AND na.outgoing_doc_id = a.outgoing_doc_id\
-        AND na.number <>  '-' ORDER BY number) AS \"Номера\"\
-        FROM (SELECT incoming_doc_id, outgoing_doc_id, award_id FROM awards WHERE category = 1 AND outgoing_doc_id = %1\
-        ORDER BY incoming_doc_id) AS a GROUP BY \"Основание\", \"Название\"\
-        ;").arg(document_details.at(0)));
+//    model_report_receiver->setQuery(QString("SELECT\
+//        'ГОСУДАРСТВЕННЫЕ НАГРАДЫ РОССИЙСКОЙ ФЕДЕРАЦИИ' AS \"Категория\",\
+//        (SELECT direction FROM documents AS doc WHERE\
+//        doc.inputnumber = a.incoming_doc_id AND awards_category = 0 AND doc.type = 0) AS \"Основание\",\
+//        (SELECT text FROM SLOVAR AS d WHERE d.kod = a.award_id) AS \"Название\",\
+//        (SELECT  COUNT(award_id) FROM awards AS ca WHERE ca.award_id = a.award_id\
+//        AND ca.incoming_doc_id = a.incoming_doc_id AND ca.outgoing_doc_id = a.outgoing_doc_id) AS \"Количество\",\
+//        (SELECT GROUP_CONCAT(number, ', ') FROM awards AS na WHERE na.award_id = a.award_id\
+//        AND na.incoming_doc_id = a.incoming_doc_id AND na.outgoing_doc_id = a.outgoing_doc_id\
+//        AND na.number <>  '-' ORDER BY number) AS \"Номера\"\
+//        FROM (SELECT incoming_doc_id, outgoing_doc_id, award_id FROM awards WHERE category = 0 AND outgoing_doc_id = %1\
+//        ORDER BY incoming_doc_id) AS a GROUP BY \"Основание\", \"Название\"\
+//        UNION ALL\
+//        SELECT\
+//        'ВЕДОМСТВЕННЫЕ НАГРАДЫ РОССИЙСКОЙ ФЕДЕРАЦИИ' AS \"Категория\",\
+//        (SELECT direction FROM documents AS doc WHERE\
+//        doc.inputnumber = a.incoming_doc_id AND awards_category = 1 AND doc.type = 0) AS \"Основание\",\
+//        (SELECT text FROM SLOVAR AS d WHERE d.kod = a.award_id) AS \"Название\",\
+//        (SELECT  COUNT(award_id) FROM awards AS ca WHERE ca.award_id = a.award_id\
+//        AND ca.incoming_doc_id = a.incoming_doc_id AND ca.outgoing_doc_id = a.outgoing_doc_id) AS \"Количество\",\
+//        (SELECT GROUP_CONCAT(number, ', ') FROM awards AS na WHERE na.award_id = a.award_id\
+//        AND na.incoming_doc_id = a.incoming_doc_id AND na.outgoing_doc_id = a.outgoing_doc_id\
+//        AND na.number <>  '-' ORDER BY number) AS \"Номера\"\
+//        FROM (SELECT incoming_doc_id, outgoing_doc_id, award_id FROM awards WHERE category = 1 AND outgoing_doc_id = %1\
+//        ORDER BY incoming_doc_id) AS a GROUP BY \"Основание\", \"Название\"\
+//        ;").arg(document_details.at(0)));
+
+
+
+    model_report_receiver->setQuery(QString("SELECT DISTINCT\
+    'ГОСУДАРСТВЕННЫЕ НАГРАДЫ РОССИЙСКОЙ ФЕДЕРАЦИИ' AS \"Категория\",\
+    (SELECT direction FROM documents AS d WHERE d.ID = (SELECT incoming_doc_id FROM awards AS doc WHERE doc.ID = a.ID)) AS \"Основание\",\
+    (SELECT text FROM SLOVAR AS s WHERE s.kod = (SELECT award_id FROM awards AS name WHERE name.ID = a.ID)) AS \"Название\",\
+    COUNT(a.ID) AS \"Количество\",\
+    STUFF((SELECT ', ' + number FROM awards AS num WHERE EXISTS\
+    (SELECT [klnagruk], [nomnagr] FROM OSNAGR AS gn\
+    WHERE [klprotpr] = 1\
+    AND [nomisx] = (SELECT CONVERT(nvarchar(5), 'рн ') + CONVERT(nvarchar(10), inputnumber)\
+    FROM documents WHERE ID = '%1')\
+    AND [datotpr]  = (SELECT CONVERT(nvarchar(10), inputdate, 104)\
+    FROM documents WHERE ID = '%1') AND award_id = gn.klnagruk AND number = gn.nomnagr)\
+    OR\
+    (outgoing_doc_id = '%1') FOR XML PATH('')), 1, 1, '') AS \"Номера\"\
+    FROM\
+    (SELECT ID FROM awards WHERE EXISTS\
+    (SELECT [klnagruk], [nomnagr] FROM OSNAGR AS gn\
+    WHERE [klprotpr] = 1\
+    AND [nomisx] = (SELECT CONVERT(nvarchar(5), 'рн ') + CONVERT(nvarchar(10), inputnumber)\
+    FROM documents WHERE ID = '%1')\
+    AND [datotpr]  = (SELECT CONVERT(nvarchar(10), inputdate, 104)\
+    FROM documents WHERE ID = '%1') AND award_id = gn.klnagruk AND number = gn.nomnagr)\
+    OR\
+    (outgoing_doc_id = '%1')) AS a GROUP BY a.ID;").arg(document_details.at(0)));
 //перенос на новую строку МО РФ и ВС РФ
     QString sender;
-    sender = document_details.at(2);
+    sender = document_details.at(3);
     sender = QString(sender)
         .replace(" Министерства обороны Российской Федерации","<br>Министерства обороны Российской Федерации");
     sender = QString(sender)
         .replace(" Вооруженных Сил Российской Федерации","<br>Вооруженных Сил Российской Федерации");
     QString receiver;
-    receiver = document_details.at(3);
+    receiver = document_details.at(4);
     receiver = QString(receiver)
         .replace(" Министерства обороны Российской Федерации","<br>Министерства обороны Российской Федерации");
     receiver = QString(receiver)
@@ -225,11 +252,11 @@ QString REPORT::load_outgoing_doc_report(QStringList document_details)
     QTextStream out(&strStream);
     QString table_text;
 //добавление организации в шаблон
-    out << insert_paragraph(QString("%1<br>%2").arg(sender, document_details.at(1)), "center");
+    out << insert_paragraph(QString("%1<br>%2").arg(sender, document_details.at(2)), "center");
     out << insert_paragraph(QString("&nbsp;"));
     //out << insert_paragraph(QString("<br>"));
 //добавление номера документа в шаблон
-    out << insert_paragraph(QString("<i>РАСХОДНАЯ НАКЛАДНАЯ № %1</i>").arg(document_details.at(0)), "center");
+    out << insert_paragraph(QString("<i>РАСХОДНАЯ НАКЛАДНАЯ № %1</i>").arg(document_details.at(1)), "center");
     out << insert_paragraph(QString("&nbsp;"));
     //out << insert_paragraph(QString("<br>"));
 //добавление организации получателя в шаблон

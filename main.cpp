@@ -114,7 +114,7 @@ int connection_db (QString type_connection, QString login, QString pass) //фу�
         db = QSqlDatabase::addDatabase("QODBC3"); //выбрать драйвер
         bool ok;
         QString connection_string = QInputDialog::getText(0, "Подключение к базе данных",
-            QString("Укажите данные для подключения..."), QLineEdit::Normal, "DRIVER={SQL SERVER}; SERVER=127.0.0.1; DATABASE=accounting_of_medal_db; Trusted_Connection=yes;", &ok);
+        QString("Укажите данные для подключения..."), QLineEdit::Normal, "DRIVER={SQL SERVER}; SERVER=127.0.0.1; DATABASE=accounting_of_medal_db; Trusted_Connection=yes;", &ok);
 //при положительном решение...
         if(ok)
         {

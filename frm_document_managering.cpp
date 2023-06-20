@@ -28,15 +28,18 @@ FRM_document_managering::FRM_document_managering(QWidget *parent) :
     miliraty_awards_icon.addFile(":/resource/Images/За воинскую доблесть I степени.png");
     ui->cB_awards_category->addItem(state_awards_icon, "Государственные награды");
     ui->cB_awards_category->addItem(miliraty_awards_icon, "Ведомственные награды");
+    ui->cB_awards_category->setCurrentIndex(-1);
     QIcon receivering_awards;
     receivering_awards.addFile(":/img/db_comit.png");
     QIcon sendering_awards;
     sendering_awards.addFile(":/img/db_update.png");
     ui->cB_type_operation->addItem(receivering_awards, "Получение наград");
     ui->cB_type_operation->addItem(sendering_awards, "Выдача наград");
+    ui->cB_type_operation->setCurrentIndex(-1);
 //заполнение моделей данных
-    model_organization->setQuery("SELECT shortname AS \"Аббревиатура\", id, fullname AS \"Наименование\"\
-        FROM organizations ORDER BY \"Аббревиатура\";");
+    model_organization->setQuery("SELECT TEXT AS \"Наименование\", KOD, SOKR AS \"Аббревиатура\"\
+                                 FROM SLOVAR\
+                                 WHERE RAZDEL = 3;");
 //установка комплитеров на текстовые поля
     ui->le_receiver_name->setCompleter(createCompleter(model_organization));
     ui->le_sender_name->setCompleter(createCompleter(model_organization));
@@ -50,7 +53,6 @@ FRM_document_managering::FRM_document_managering(QWidget *parent) :
 void FRM_document_managering::slotCustomMenuRequested(QPoint pos)
 {
     QMenu* menu = new QMenu(this);
-
     QAction* set_filter = new QAction(tr("Фильтровать"), this);
     connect(set_filter, SIGNAL(triggered()), this, SLOT(set_filter_from_table()));
     menu->addAction(set_filter);
@@ -59,41 +61,48 @@ void FRM_document_managering::slotCustomMenuRequested(QPoint pos)
 
 void FRM_document_managering::on_cB_awards_category_currentIndexChanged(int /*index*/)
 {
-    load_documents_table(ui->cB_awards_category->currentIndex(), ui->cB_type_operation->currentIndex());
+    if(!(ui->cB_awards_category->currentIndex() == -1 || ui->cB_type_operation->currentIndex() == -1))
+    {
+        load_documents_table(ui->cB_awards_category->currentIndex(), ui->cB_type_operation->currentIndex());
+    }
 }
 
 void FRM_document_managering::on_cB_type_operation_currentIndexChanged(int /*index*/)
 {
-    load_documents_table(ui->cB_awards_category->currentIndex(), ui->cB_type_operation->currentIndex());
+    if(!(ui->cB_awards_category->currentIndex() == -1 || ui->cB_type_operation->currentIndex() == -1))
+    {
+        load_documents_table(ui->cB_awards_category->currentIndex(), ui->cB_type_operation->currentIndex());
+    }
 }
 
-int FRM_document_managering::find_organizations_id(QString shortname)
+int FRM_document_managering::find_organizations_id(QString fullname)
 {
-    bool ok;
-    QString fullname;
-    QSqlQuery add_organizations;
+//    bool ok;
+//    QString shortname;
+//    QSqlQuery add_organizations;
 //составляем список индексов с содержанием значения
-    QModelIndexList indexes = model_organization->match(model_organization->index(0, 0),Qt::DisplayRole, shortname);
+    QModelIndexList indexes = model_organization->match(model_organization->index(0, 0),Qt::DisplayRole, fullname);
 //если список пуст...
     if(indexes.count() == 0)
     {
-//предлагаем добавить значение в классификатор организаций
-        fullname = QInputDialog::getText(this, "Указанная организация отсутствует в классификаторе!",
-            QString("Для добавления организации укажите ее полное наименование..."), QLineEdit::Normal, shortname, &ok);
-//при положительном решение...
-        if(ok)
-        {
-//если строка успешно создана...
-            if(add_organizations.exec(QString("INSERT INTO organizations (shortname, fullname) VALUES ('%1', '%2');")
-                .arg(shortname)
-                .arg(fullname)))
-            {
-//обновляем модель данных
-                model_organization->setQuery(model_organization->query().lastQuery());
-//заново составляем список индексов
-                indexes = model_organization->match(model_organization->index(0, 0),Qt::DisplayRole, shortname);
-            }
-        }
+////предлагаем добавить значение в классификатор организаций
+//        fullname = QInputDialog::getText(this, "Указанная организация отсутствует в классификаторе!",
+//            QString("Для привязки сокращенного наименования выберите полное наименование кадрового органа из классификатора..."),
+//                                          QLineEdit::Normal, fullname, &ok);
+////при положительном решение...
+//        if(ok)
+//        {
+////если строка успешно создана...
+//            if(add_organizations.exec(QString("UPDATE [dbo].[SLOVAR] SET [SOKR] = '%1' WHERE [RAZDEL] = 3 AND [TEXT] = '%2';")
+//                .arg(shortname, fullname)))
+//            {
+////обновляем модель данных
+//                model_organization->setQuery(model_organization->query().lastQuery());
+////заново составляем список индексов
+//                indexes = model_organization->match(model_organization->index(0, 0),Qt::DisplayRole, fullname);
+//            }
+//        }
+        return 0;
     }
 //если список наполнился...
     if(indexes.count() > 0)
@@ -111,7 +120,10 @@ void FRM_document_managering::on_le_receiver_name_editingFinished()
 {
     if (!ui->le_receiver_name->text().isEmpty())
     {
-        if(find_organizations_id(ui->le_receiver_name->text()) == 0) ui->le_receiver_name->clear();
+        if(find_organizations_id(ui->le_receiver_name->text()) == 0)
+        {
+            ui->le_receiver_name->clear();
+        }
     }
 }
 
@@ -119,7 +131,10 @@ void FRM_document_managering::on_le_sender_name_editingFinished()
 {
     if (!ui->le_sender_name->text().isEmpty())
     {
-        if(find_organizations_id(ui->le_sender_name->text()) == 0) ui->le_sender_name->clear();
+        if(find_organizations_id(ui->le_sender_name->text()) == 0)
+        {
+            ui->le_sender_name->clear();
+        }
     }
 }
 
@@ -128,7 +143,7 @@ int FRM_document_managering::get_free_inputnumber()
     QString text_query;
     QSqlQuery free_num_query;
     text_query = QString("SELECT MAX(inputnumber) FROM documents AS d\
-                                    WHERE awards_category = %1 AND type = %2 ORDER BY inputnumber;")
+                                    WHERE awards_category = %1 AND type = %2;")
                 .arg(ui->cB_awards_category->currentIndex()).arg(ui->cB_type_operation->currentIndex());
     if(free_num_query.exec(text_query))
     {
@@ -171,7 +186,7 @@ int FRM_document_managering::on_bnt_save_doc_clicked()
     }
     if (reply == QMessageBox::Yes)
     {
-        if(ui->le_inputnumber->text().toInt() <= ui->tV_documents->model()->index(0, 8).data().toInt())
+        if(ui->bnt_save_doc->text() == "Обновить информацию") /*ui->le_inputnumber->text().toInt() <= ui->tV_documents->model()->index(0, 8).data().toInt())*/
         {
             add_doc_text = QString("UPDATE documents SET receiver_id = %3, inputdate = '%5', sender_id = %6,\
                 outputnumber = '%7', outputdate = '%8', mail_type = '%9', direction = '%10'\
@@ -187,11 +202,11 @@ int FRM_document_managering::on_bnt_save_doc_clicked()
                     .arg(ui->le_mail_type->text())
                     .arg(ui->le_direction->text());
         }
-        if(ui->le_inputnumber->text().toInt() > ui->tV_documents->model()->index(0, 8).data().toInt())
+        if(ui->bnt_save_doc->text() == "Зарегистрировать") /*ui->le_inputnumber->text().toInt() > ui->tV_documents->model()->index(0, 8).data().toInt())*/
         {
-            add_doc_text = QString("INSERT INTO documents (awards_category, type, receiver_id,inputnumber, \
+            add_doc_text = QString("INSERT INTO documents (awards_category, type, receiver_id, inputnumber, \
                 inputdate, sender_id, outputnumber, outputdate, mail_type, direction)\
-                VALUES (%1, %2, %3, '%4', '%5', '%6', '%7', '%8', '%9', '%10');")
+                VALUES (%1, %2, %3, '%4', '%5', %6, '%7', '%8', '%9', '%10');")
             .arg(ui->cB_awards_category->currentIndex())
             .arg(ui->cB_type_operation->currentIndex())
             .arg(find_organizations_id(ui->le_receiver_name->text()))
@@ -259,11 +274,11 @@ void FRM_document_managering::models_update()
 void FRM_document_managering::load_documents_table(int awards_category, int type)
 {
     QString doc_query = QString("SELECT\
-                            (SELECT shortname FROM organizations WHERE id = d.receiver_id) AS \"Получатель\",\
-                            inputnumber AS \"Входящий №\", inputdate AS \"Дата вх.\", (SELECT shortname FROM organizations\
-                            WHERE id = d.sender_id) AS \"Отправитель\", outputnumber AS \"Исходящий №\",\
-                            outputdate AS \"Дата исх.\", mail_type AS \"Тип передачи\", direction AS \"Основание\"\
-                            FROM documents AS d WHERE awards_category = %1 AND type = %2 ORDER BY inputnumber;")
+                                (SELECT text FROM slovar WHERE RAZDEL = 3 AND KOD = d.receiver_id) AS \"Получатель\",\
+                                inputnumber AS \"Входящий №\", inputdate AS \"Дата вх.\", (SELECT TEXT FROM SLOVAR\
+                                WHERE RAZDEL = 3 AND KOD = d.sender_id) AS \"Отправитель\", outputnumber AS \"Исходящий №\",\
+                                outputdate AS \"Дата исх.\", mail_type AS \"Тип передачи\", direction AS \"Основание\"\
+                                FROM [documents] AS d WHERE awards_category = %1 AND type = %2 ORDER BY inputnumber;")
                     .arg(awards_category).arg(type);
     model_documents->setQuery(doc_query);
     ui->tV_documents->setModel(model_documents);
@@ -280,3 +295,4 @@ FRM_document_managering::~FRM_document_managering()
 {
     delete ui;
 }
+

@@ -5,9 +5,11 @@
 #include <QCompleter>
 #include <QSqlQuery>
 #include <QSqlQueryModel>
+#include <QSortFilterProxyModel>
 #include <QSqlError>
 #include <QMessageBox>
 #include <QDebug>
+#include <QUuid>
 
 namespace Ui {
 class FRM_document_managering;
@@ -35,7 +37,7 @@ private slots:
 
     void on_le_receiver_name_editingFinished();
 
-    int find_organizations_id(QString shortname);
+    int find_organizations_id(QString fullname);
 
     void on_le_sender_name_editingFinished();
 
